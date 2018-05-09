@@ -1,0 +1,62 @@
+- name: Add docker repo
+  shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# Temp Need to remove this after getting the internal repo
+- name: Add centos repo
+  template:
+    src: centos.j2
+    dest: /etc/yum.repos.d/centos.repo
+
+- name: Install dep for docker
+  package:
+      name: "{{ item }}"
+      state: present
+  with_items: "{{ yum_package }}"
+
+- name: Start and enable docker service
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Config kubernetes repo
+  template:
+    src: kube.j2
+    dest: /etc/yum.repos.d/kubernetes.repo
+
+- name: Config ipv6 tables
+  template:
+    src: k8s.j2
+    dest: /etc/sysctl.d/k8s.conf
+
+- name: reload sysctl
+  shell: sysctl --system
+
+- name: Install Kubeadm
+  package:
+      name: kubeadm
+      state: present
+
+- name: Install kubectl
+  package:
+    name: kubectl
+    state: present
+
+- name: Change cgroups
+  lineinfile:
+    path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    regexp: "cgroup-driver=systemd"
+    line: "cgroup-driver=cgroupfs"
+
+- name: Start and enable docker service
+  systemd:
+    name: kubelet
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Stop Firewalld
+  systemd:
+    name: firewalld
+    state: stopped
+    enabled: no

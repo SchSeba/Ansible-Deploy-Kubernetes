@@ -1,0 +1,15 @@
+yum_package:
+  - epel-release
+  - yum-utils
+  - lvm2
+  - bash-completion
+  - bash-completion-extras
+  - device-mapper-persistent-data
+  - wget
+  - git
+  - net-tools
+  - bind-utils
+  - iptables-services
+  - bridge-utils
+  - kexec-tools
+  - docker-ce

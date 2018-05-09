@@ -1,0 +1,5 @@
+- hosts: kube
+  user: root
+  roles:
+    - Kubeadm-Install
+    - Kubeadm-Create

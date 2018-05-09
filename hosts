@@ -1,0 +1,15 @@
+[kube-master]
+master.test
+
+[kube-node]
+node1.test
+node2.test
+
+[kube:children]
+kube-master
+kube-node
+
+[kube:vars]
+VERSION=v0.4.1
+master_schedule=FALSE
+deploy_kubevirt=TRUE

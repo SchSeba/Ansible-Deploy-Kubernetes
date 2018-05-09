@@ -1,0 +1,53 @@
+- name: Turn swap off
+  shell: swapoff -a
+
+- name: remove swap from fstab
+  lineinfile:
+    path: /etc/fstab
+    regexp: 'swap'
+    state: absent
+
+- name: Reset kubeadm
+  shell: kubeadm reset
+
+- name: Run kubeadm on the master node
+  shell: kubeadm init --pod-network-cidr=192.168.0.0/16 | grep "kubeadm join"
+  when: "'kube-master' in group_names "
+  register: kubeadm-result
+
+- name: Create .kube directory
+  file:
+    path: /root/.kube
+    state: directory
+  when: "'kube-master' in group_names "
+
+- name: Copy kube config file
+  shell: mv /etc/kubernetes/admin.conf /root/.kube/config
+  when: "'kube-master' in group_names "
+
+- name: Run calico
+  shell: kubectl apply -f https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/kubeadm/1.7/calico.yaml
+  when: "'kube-master' in group_names "
+
+- name: Check master scheduler
+  shell: kubectl taint nodes --all node-role.kubernetes.io/master-
+  when: "{{ master_scheduler }}" == TRUE and "'kube-master' in group_names "
+
+- name: Run kubeadm join on nodes
+  shell: "{{ hostvars[groups['kube-master'][0]]['kubeadm-result']['stdout'] }}"
+  when: "'kube-node' in group_names "
+
+- name: Run autocomplite
+  lineinfile:
+    path: ~/.bashrc
+    regexp: 'kubectl completion bash'
+    line: 'source <(kubectl completion bash)'
+  when: "'kube-master' in group_names "
+
+- name: Deploy Kubevirt
+  shell: export VERSION="{{ VERSION }}"; kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/$VERSION/kubevirt.yaml
+  when: "'kube-master' in group_names " and "{{ deploy_kubevirt }}" == TRUE
+
+- name: Download virtcli
+  shell: export VERSION="{{ VERSION }}"; curl -L -o /usr/bin/virtctl https://github.com/kubevirt/kubevirt/releases/download/$VERSION/virtctl-$VERSION-linux-amd64; chmod +x /usr/bin/virtctl
+  when: "'kube-master' in group_names " and "{{ deploy_kubevirt }}" == TRUE

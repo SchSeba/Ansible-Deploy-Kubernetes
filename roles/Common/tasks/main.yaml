@@ -1,0 +1,23 @@
+# Temp Need to remove this after getting the internal repo
+- name: Add centos repo
+  template:
+    src: centos.j2
+    dest: /etc/yum.repos.d/centos.repo
+
+- name: Install dep for docker
+  package:
+      name: "{{ item }}"
+      state: present
+  with_items: "{{ yum_package }}"
+
+- name: Start and enable docker service
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Stop Firewalld
+  systemd:
+    name: firewalld
+    state: stopped
+    enabled: no
